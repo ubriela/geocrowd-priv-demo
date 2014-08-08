@@ -19,10 +19,10 @@
 
 
 // Hien config
-//$config['base_url']	= 'http://localhost/geocast/';
+$config['base_url']	= 'http://localhost:8080/geocast/geocast/';
 
 // Cloud config       
-$config['base_url']	=  'http://geocast.azurewebsites.net/geocast/';
+//$config['base_url']	=  'http://geocast.azurewebsites.net/geocast/geocast/';
 
 /*
 |--------------------------------------------------------------------------
