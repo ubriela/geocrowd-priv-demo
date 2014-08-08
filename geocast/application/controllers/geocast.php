@@ -14,8 +14,10 @@ class Geocast extends CI_Controller {
 		$this->load->library ( 'form_validation' );
 	}
 	
+	
+	
 	/**
-	 * Index Page for this controller.
+	 * Index Page for this controller
 	 */
 	public function index() {
 		global $DATASET_URL;
