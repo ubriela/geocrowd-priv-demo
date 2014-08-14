@@ -1,5 +1,6 @@
-var DATASET_URL = 'http://ubriela.cloudapp.net/dataset';
-var GEOCAST_URL = 'http://ubriela.cloudapp.net/geocast/'
+var DATASET_URL = 'http://ubriela.cloudapp.net/dataset/';
+var GEOCAST_URL = 'http://ubriela.cloudapp.net/geocast/';
+var PARAM_URL = 'http://ubriela.cloudapp.net/param/'
 
 var map = null;
 var infoWindow;
@@ -23,16 +24,50 @@ var delayTime = 100;
 var heatmapLayers = new Array();
 var dataLocs = new Array();
 
+var phoenix = new google.maps.LatLng(37.72822, -122.40297);
+
+var mobilityMode = false;
+
 /**
  * This function is called when the homepage is loaded
  */
 function load() {
-	map = new google.maps.Map(document.getElementById("map_canvas"), {
-		center : new google.maps.LatLng(37.76822, -122.44297),
-		zoom : 12,
-		mapTypeId : 'roadmap'
 
-	});
+	/* map options */
+	var mapDiv = document.getElementById('map_canvas');
+	var mapOptions = {
+		scrollwheel : true,
+		scaleControl : true,
+		zoom : 12,
+		center : phoenix,
+		mapTypeId : google.maps.MapTypeId.ROADMAP,
+
+		mapTypeControl : true,
+		mapTypeControlOptions : {
+			style : google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+			position : google.maps.ControlPosition.TOP_RIGHT
+		},
+		panControl : true,
+		panControlOptions : {
+			position : google.maps.ControlPosition.TOP_RIGHT
+		},
+		zoomControl : true,
+		zoomControlOptions : {
+			style : google.maps.ZoomControlStyle.DEFAULT,
+			position : google.maps.ControlPosition.TOP_RIGHT
+		},
+		scaleControl : true,
+		scaleControlOptions : {
+			position : google.maps.ControlPosition.BOTTOM_RIGHT
+		},
+		streetViewControl : true,
+		streetViewControlOptions : {
+			position : google.maps.ControlPosition.TOP_RIGHT
+		}
+	};
+	map = new google.maps.Map(mapDiv, mapOptions);
+
+	/* map click event */
 	google.maps.event.addListener(map, 'dblclick', function(event) {
 
 		var touch_point = new google.maps.LatLng(event.latLng.lat(),
@@ -49,6 +84,7 @@ function load() {
 		allMarkers.push(marker);
 	});
 
+	/* init datasets */
 	for (i = 0; i < $datasets.names.length; i++) {
 		dataLocs[i] = [];
 		loadDataset(dataLocs[i], i)
@@ -57,6 +93,18 @@ function load() {
 			data : pointArray
 		});
 	}
+
+	$('#jqxdropdown_dataset').trigger('change');
+	toggleHeatmap();
+	
+	var interval = setInterval(mobilitySimulation, 3000);
+}
+
+function loadStats() {
+	$('#label_worker_count').text($datasets.worker_counts[datasetIdx]);
+	$('#label_mtd').text($datasets.mtds[datasetIdx]);
+	$('#label_area').text($datasets.areas[datasetIdx]);
+	$('#label_pearson_skewness').text($datasets.pearson_skewness[datasetIdx]);
 }
 
 function set_delay() {
@@ -65,7 +113,6 @@ function set_delay() {
 		alert("Invalid input");
 	} else {
 		delayTime = parseFloat(input_delay);
-
 	}
 
 }
@@ -106,6 +153,43 @@ function drawGeocastRegion() {
 		if (i >= obj.geocast_query.x_min_cords.length)
 			clearInterval(interval);
 	}, delayTime);
+
+	/**
+	 * Draw the bounding circle of geocast region
+	 */
+	drawBoundingCircle();
+}
+
+/**
+ * Draw bounding circle
+ */
+function drawBoundingCircle() {
+	var center = new google.maps.LatLng(obj.bounding_circle[0],
+			obj.bounding_circle[1]);
+	var radius = obj.bounding_circle[2];
+	var circleOptions = {
+		strokeColor : '#FF0000',
+		strokeOpacity : 0.6,
+		strokeWeight : 1,
+		fillColor : '#FF0000',
+		fillOpacity : 0.2,
+		map : map,
+		center : center,
+		radius : radius * 100000
+	};
+
+	// Add the circle for this city to the map.
+	var cityCircle = new google.maps.Circle(circleOptions);
+
+	// Add a listener for the click event to show hop count.
+	var infoWindow = new google.maps.InfoWindow();
+	google.maps.event.addListener(cityCircle, 'click', function(event) {
+		var info = 'Hop count: ' + obj.hop_count;
+		infoWindow.setContent(info);
+		infoWindow.setPosition(event.latLng);
+
+		infoWindow.open(map);
+	});
 }
 
 /*
@@ -149,26 +233,29 @@ function drawGeocastCell(i) {
 
 	// Add a listener for the click event to show cell info.
 	infoWindow = new google.maps.InfoWindow();
-	google.maps.event.addListener(cellPolygons[cellIdx], 'click',
-			function(event) {
-				var info = 'Order added: ' + (i + 1);
-				info += '</br><b>Cell Utility:</b>'
-						+ obj.geocast_query.utilities[i][0];
-				info += '</br><b>Current GeoCast Utility:</b>'
-						+ obj.geocast_query.utilities[i][1];
-				info += '</br><b>Compactness:</b>'
-						+ obj.geocast_query.compactnesses[i];
-				info += '</br><b>Distance:</b>'
-						+ obj.geocast_query.distances[i];
-				info += '</br><b>Area:</b>' + obj.geocast_query.areas[i];
-				info += '</br><b>Worker Counts:</b>'
-						+ obj.geocast_query.worker_counts[i];
+	google.maps.event.addListener(cellPolygons[cellIdx], 'click', function(
+			event) {
+		var info = 'Adding Order: ' + (i + 1);
+		info += '<table  border="1"><tr><td><b>Cell Utility</td><td>'
+				+ obj.geocast_query.utilities[i][0];
+		info += '</td></tr><tr><td><b>Current Utility</b></td><td>'
+				+ obj.geocast_query.utilities[i][1];
+		info += '</td></tr><tr><td><b>Current Compactness</b></td><td>'
+				+ obj.geocast_query.compactnesses[i];
+		info += '</td></tr><tr><td><b>Distance to task (km)</b></td><td>'
+				+ obj.geocast_query.distances[i];
+		info += '</td></tr><tr><td><b>Area (&#x33a2;)</b></td><td>'
+				+ obj.geocast_query.areas[i];
+		info += '</td></tr><tr><td><b>Noisy Worker Count</b></td><td>'
+				+ obj.geocast_query.worker_counts[i]
+		info += '</td></tr></table>';
+		;
 
-				infoWindow.setContent(info);
-				infoWindow.setPosition(event.latLng);
+		infoWindow.setContent(info);
+		infoWindow.setPosition(event.latLng);
 
-				infoWindow.open(map);
-			});
+		infoWindow.open(map);
+	});
 
 }
 
@@ -200,7 +287,7 @@ function drawATask(marker, map, infoWindow, html) {
 /*
  * Show_Boundary is to show/hide boundary of the dataset
  */
-function showBoundary(showBound) {
+function toggleBoundary(showBound) {
 	var button = document.getElementById("boundary");
 
 	if (button.value == "Show Boundary" || showBound == true) {
@@ -264,13 +351,13 @@ function drawTestTask() {
 
 	var lat_lng = latlng.split(",");
 	if (lat_lng.length == 2 // check if the input containt exact 2 parts
-							// seperated by ","
+			// seperated by ","
 			&& !isNaN(lat_lng[0]) && !isNaN(lat_lng[1]) // check if 2 parts are
-														// numeric
+			// numeric
 			&& lat_lng[0] >= -90 && lat_lng[0] <= 90 // check range of
-														// lattitude
+			// lattitude
 			&& lat_lng[1] >= -180 && lat_lng[0] <= 180) { // check range of
-															// longitude
+		// longitude
 		retrieveGeocastInfo(latlng);
 
 		var coor = document.forms["input"]["coordinate"].value;
@@ -330,16 +417,86 @@ function clearMap() {
 }
 
 /**
+ * Publish data with parameters
+ * 
+ * rebuild = 1 --> recreate PSD
+ */
+function publishData() {
+	var dataset = $('#jqxdropdown_datasetsx').val();
+	var privacy_budget = $('#jqxdropdown_privacy_budget').val()
+	var budget_param = $('#jqxdropdown_budget_parameter').val();
+	var granularity = $('#jqxdropdown_granularity').val();
+
+	$.ajax({
+		url : PARAM_URL,
+		data : "dataset=" + dataset + "&eps=" + privacy_budget + "&percent="
+				+ budget_param + "&localness=" + granularity + "&rebuild=1",
+		type : "GET",
+		dataType : "json",
+		success : callbackpublishData
+	});
+
+	$("#jqxdropdown_datasetsx").notify(
+			"The dataset was published successfully.", "success");
+}
+
+function callbackpublishData(responseJSON) {
+
+}
+
+/**
+ * Update algorithm' parameters
+ */
+function updateParams() {
+	var heuristic = $('#jqxdropdown_heuristic').val();
+	var subcell = $('#jqxdropdown_subcell').val();
+	var eu = $('#jqxdropdown_expected_utility').val();
+	var ar = $('#jqxdropdown_acceptance_rate').val();
+	var mar = $('#jqxdropdown_maximum_acceptance_rate').val();
+	var range = $('#jqxdropdown_wireless_range').val();
+
+	$.ajax({
+		url : PARAM_URL,
+		data : "heuristic=" + heuristic + "&subcell=" + subcell + "&utl=" + eu
+				+ "&arf=" + ar + "&mar=" + mar + "&range=" + range
+				+ "&rebuild=0",
+		type : "GET",
+		dataType : "json",
+		success : callbackUpdateParams
+	});
+
+	$("#jqxdropdown_acceptance_rate").notify(
+			"The parameters were updated successfully.", "success");
+}
+
+function callbackUpdateParams(responseJSON) {
+	json = responseJSON;
+
+	if (json === "blank")
+		alert("Crowdsourcing service is now unavailable");
+	else {
+		obj = JSON.parse(json);
+		if (obj.hasOwnProperty('error')) {
+		} else {
+			$("#jqxdropdown_acceptance_rate").notify(
+					"The parameters were updated successfully.", "success");
+		}
+	}
+}
+
+/**
  * The task tab on left
  * 
  * @returns {undefined}
  */
 $(function() {
-	$("#tabs").tabs();
+	$("#tabs_query").tabs();
 });
 $(function() {
 	$("#tabs_setting").tabs();
-
+});
+$(function() {
+	$("#tabs_dataset").tabs();
 });
 
 /*******************************************************************************
@@ -454,7 +611,10 @@ function appendTask(lat, lng) {
 	linkElement.setAttribute("href", "javascript:drawSelectedTask('" + lat
 			+ "," + lng + "')");
 	linkElement.setAttribute("onClick", "changeLinkColor(this)");
-	linkElement.appendChild(document.createTextNode(lat + "," + lng));
+	var formatted_lat = Number(lat).toFixed(6);
+	var formatted_lng = Number(lng).toFixed(6);
+	linkElement.appendChild(document.createTextNode(formatted_lat + ","
+			+ formatted_lng));
 	cell.appendChild(linkElement);
 }
 
@@ -469,7 +629,7 @@ var currentLink = null;
 function changeLinkColor(link) {
 	if (currentLink !== null) {
 		currentLink.style.color = link.style.color; // You may put any color you
-													// want
+		// want
 		currentLink.style.fontWeight = link.style.fontWeight;
 		;
 	}
@@ -488,8 +648,8 @@ function loadDataset(output, idx) {
 	} else {// code for IE6, IE5
 		txtFile = new ActiveXObject("Microsoft.XMLHTTP");
 	}
-	txtFile.open("GET",
-			"index.php/geocast/load_dataset?name=" + $datasets.names[idx], false);
+	txtFile.open("GET", "index.php/geocast/load_dataset?name="
+			+ $datasets.names[idx], false);
 	txtFile.send();
 	var txtDoc = txtFile.responseText;
 	var lines = txtDoc.split("\n");
@@ -515,88 +675,199 @@ function toggleHeatmap() {
 		button.value = "Show Heatmap";
 }
 
-$(function() {
-	$("#dataset").selectable(
-			{
-				selected : function(event, ui) {
-					datasetIdx = ui.selected.value;
-					var boundary = $datasets.boundaries[datasetIdx];
-					boundary = boundary.split(",");
+/**
+ * All workers move in randomly direction, North, South, East, West (e.g., 10km
+ * in every second)
+ */
 
-					bounds = new google.maps.LatLngBounds(
-							new google.maps.LatLng(parseFloat(boundary[0]),
-									parseFloat(boundary[1])),
-							new google.maps.LatLng(parseFloat(boundary[2]),
-									parseFloat(boundary[3])));
+function toggleMobilitySimulation() {
+	var button = document.getElementById("toggle_mobility");
+	if (button.value === "Start Simulation") {
+		button.value = "Stop Simulation";
+		mobilityMode = true;
+	} else {
+		button.value = "Start Simulation";
+		mobilityMode = false;
+	}
+}
 
-					showBoundary(true);
-					retrieveHistoryTasks();
-				}
-			});
-});
+function mobilitySimulation() {
+
+	if (!mobilityMode)
+		return;
+	/* update locations in dataLocs */
+	for (i = 0; i < dataLocs[datasetIdx].length; i++) {
+		var latlng = dataLocs[datasetIdx][i];
+		randomWalk(latlng, 2);
+		dataLocs[datasetIdx][i] = latlng;
+	}
+
+	heatmapLayers[datasetIdx] = new google.maps.visualization.HeatmapLayer({
+		data : new google.maps.MVCArray(dataLocs[datasetIdx])
+	});
+
+	/* clear heatmap */
+	heatmapLayers[datasetIdx].setMap(heatmapLayers[datasetIdx].getMap() ? null
+			: map);
+}
+
+/**
+ * Random walk to either north/south/east/west
+ * 
+ * @param value
+ * @param step
+ */
+function randomWalk(latlng, step) {
+	var lat = latlng.lat();
+	var lng = latlng.lng();
+
+	var rand = Math.random() - 0.5;
+
+	var new_lat = lat + rand * step;
+	new_lat = Math.max(new_lat, bounds.getSouthWest().lat());
+	new_lat = Math.min(new_lat, bounds.getNorthEast().lat());
+
+	var new_lng = lng + rand * step;
+	new_lng = Math.max(new_lng, bounds.getSouthWest().lng());
+	new_lng = Math.min(new_lng, bounds.getNorthEast().lng());
+
+	latlng = new google.maps.LatLng(new_lat, new_lng);
+}
 
 $(document).ready(function() {
-	$('#dataset li:first').addClass('ui-selected');
+	// $('#jqxdropdown_dataset').addClass('ui-selected');
 
-	var Algos = [ "Greedy", "Baseline" ];
-	var Ars = [ "Linear", "Zipf", "Constant", "Step" ];
-	var Mars = [ "0.1", "0.4", "0.7", "1.0" ];
-	var US = [ "0.6", "0,7", "0.8", "0.9" ];
-	var Heuristic = [ "hybrid", "utility", "compactness" ];
-	var Subcells = [ "True", "False" ];
+	var PrivacyBudgets = [ "1.0", "0.5", "0.2", "0.1" ];
+	var BudgetParameters = [ "0.5", "0.4", "0.3", "0.2" ];
+	var Granularities = [ "true", "false" ];
 
-	$("#jqxdropdownalgos").jqxDropDownList({
-		source : Algos,
+	$("#jqxdropdown_datasetsx").jqxDropDownList({
+		source : $datasets.names2,
 		selectedIndex : 0,
-		width : '160px',
-		height : '25px',
+		width : '110px',
+		height : '20px',
 		autoDropDownHeight : true,
 		theme : 'energyblue'
 	});
 
-	$("#jqxdropdownars").jqxDropDownList({
-		source : Ars,
+	$("#jqxdropdown_dataset").jqxDropDownList({
+		source : $datasets.names2,
 		selectedIndex : 0,
-		width : '160px',
-		height : '25px',
+		width : '110px',
+		height : '20px',
 		autoDropDownHeight : true,
 		theme : 'energyblue'
 	});
 
-	$("#jqxdropdownmars").jqxDropDownList({
-		source : Mars,
+	$("#jqxdropdown_privacy_budget").jqxDropDownList({
+		source : PrivacyBudgets,
 		selectedIndex : 0,
-		width : '160px',
-		height : '25px',
+		width : '100px',
+		height : '20px',
+		autoDropDownHeight : true,
+		theme : 'energyblue'
+	});
+	$("#jqxdropdown_budget_parameter").jqxDropDownList({
+		source : BudgetParameters,
+		selectedIndex : 0,
+		width : '110px',
+		height : '20px',
+		autoDropDownHeight : true,
+		theme : 'energyblue'
+	});
+	$("#jqxdropdown_granularity").jqxDropDownList({
+		source : Granularities,
+		selectedIndex : 0,
+		width : '100px',
+		height : '20px',
 		autoDropDownHeight : true,
 		theme : 'energyblue'
 	});
 
-	$("#jqxdropdownus").jqxDropDownList({
-		source : US,
+	var Heuristics = [ "hybrid", "utility", "compactness", "distance" ];
+	var Subcells = [ "true", "false" ];
+	var ExpectedUtilities = [ "0.9", "0.7", "0.6", "0.5" ];
+
+	var AcceptanceRates = [ "linear", "zipf" ];
+	var MaxAcceptanceRates = [ "0.1", "0.4", "0.7", "1.0" ];
+	var WirelessRanges = [ "100", "70", "50", "25" ];
+
+	$("#jqxdropdown_heuristic").jqxDropDownList({
+		source : Heuristics,
 		selectedIndex : 0,
-		width : '160px',
-		height : '25px',
+		width : '140px',
+		height : '20px',
 		autoDropDownHeight : true,
 		theme : 'energyblue'
 	});
 
-	$("#jqxdropdownheuristic").jqxDropDownList({
-		source : Heuristic,
-		selectedIndex : 0,
-		width : '160px',
-		height : '25px',
-		autoDropDownHeight : true,
-		theme : 'energyblue'
-	});
-
-	$("#jqxdropdownsubcell").jqxDropDownList({
+	$("#jqxdropdown_subcell").jqxDropDownList({
 		source : Subcells,
 		selectedIndex : 0,
-		width : '160px',
-		height : '25px',
+		width : '100px',
+		height : '20px',
 		autoDropDownHeight : true,
 		theme : 'energyblue'
 	});
 
+	$("#jqxdropdown_expected_utility").jqxDropDownList({
+		source : ExpectedUtilities,
+		selectedIndex : 0,
+		width : '100px',
+		height : '20px',
+		autoDropDownHeight : true,
+		theme : 'energyblue'
+	});
+
+	$("#jqxdropdown_acceptance_rate").jqxDropDownList({
+		source : AcceptanceRates,
+		selectedIndex : 0,
+		width : '140px',
+		height : '20px',
+		autoDropDownHeight : true,
+		theme : 'energyblue'
+	});
+
+	$("#jqxdropdown_maximum_acceptance_rate").jqxDropDownList({
+		source : MaxAcceptanceRates,
+		selectedIndex : 0,
+		width : '100px',
+		height : '20px',
+		autoDropDownHeight : true,
+		theme : 'energyblue'
+	});
+
+	$("#jqxdropdown_wireless_range").jqxDropDownList({
+		source : WirelessRanges,
+		selectedIndex : 0,
+		width : '100px',
+		height : '20px',
+		autoDropDownHeight : true,
+		theme : 'energyblue'
+	});
+});
+
+/**
+ * Select a dataset
+ */
+$(function() {
+	$("#jqxdropdown_dataset").change(
+			function() {
+				var dataset = $('#jqxdropdown_dataset').val();
+				datasetIdx = $datasets.names2.indexOf(dataset);
+				var boundary = $datasets.boundaries[datasetIdx];
+				boundary = boundary.split(",");
+
+				bounds = new google.maps.LatLngBounds(new google.maps.LatLng(
+						parseFloat(boundary[0]), parseFloat(boundary[1])),
+						new google.maps.LatLng(parseFloat(boundary[2]),
+								parseFloat(boundary[3])));
+
+				toggleBoundary(true);
+				retrieveHistoryTasks();
+				loadStats();
+
+				$("#jqxdropdown_dataset").notify(
+						"Current dataset was updated.", "success");
+			});
 });

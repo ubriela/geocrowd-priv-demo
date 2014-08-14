@@ -48,6 +48,7 @@ class Geocast extends CI_Controller {
 		}
 		
 		// prepare xml data
+		$task_idx = 0;
 		if (! empty ( $tasks )) {
 			header ( 'Content-type: text/xml' );
 			echo "<tasks>";
@@ -57,6 +58,9 @@ class Geocast extends CI_Controller {
 				echo "<lat>" . $item [0] . "</lat>";
 				echo "<lng>" . $item [1] . "</lng>";
 				echo "</task>";
+				$task_idx ++;
+				if ($task_idx >= 5)
+					break;
 			}
 			echo "</tasks>";
 		}
