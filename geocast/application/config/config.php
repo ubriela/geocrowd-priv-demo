@@ -17,9 +17,8 @@
 //Hung config
 //$config['base_url']	= 'http://localhost/GeoCast/geocast/';
 
-
 // Hien config
-// $config['base_url']	= 'http://localhost:8080/geocast/geocast/';
+//$config['base_url']	= 'http://localhost:8080/geocast/geocast/';
 
 // Cloud config     
 $config['base_url']	=  'http://geocast.azurewebsites.net/geocast/';

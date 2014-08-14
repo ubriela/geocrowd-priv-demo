@@ -19,17 +19,26 @@
 				<table>
 					<tr>
 						<td>Dataset
-							<div id='jqxdropdown_datasetsx'></div> Budget Parameter
+							<div id='jqxdropdown_datasetsx'></div>
+						</td>
+						<td>Budget Parameter
 							<div id='jqxdropdown_budget_parameter'></div>
 						</td>
+					</tr>
+					<tr>
 						<td>Privacy Budget
-							<div id='jqxdropdown_privacy_budget'></div>Customized Granularity
+							<div id='jqxdropdown_privacy_budget'></div>
+						</td>
+						<td>Customized Granularity
 							<div id='jqxdropdown_granularity'></div>
 						</td>
+					</tr>
+					<tr>
 						<td>
 							<button type="button" value="Publish Data" id="publish_data"
 								onClick="publishData()">Publish Data</button>
 						</td>
+						<td></td>
 					</tr>
 				</table>
 			</div>

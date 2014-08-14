@@ -43,7 +43,7 @@ div#tabs_dataset {
 	top: 0px;
 	left: 0px;
 	height: 200px;
-	width: 350px;
+	width: 340px;
 	margin: 5px;
 	padding: 0;
 	text-align: left;
@@ -55,9 +55,9 @@ div#tabs_dataset {
 div#tabs_setting {
 	position: absolute;
 	top: 0px;
-	left: 350px;
+	left: 340px;
 	height: 200px;
-	width: 420px;
+	width: 400px;
 	margin: 10px;
 	padding: 0;
 	text-align: left;
@@ -70,7 +70,7 @@ div#tabs_setting {
 div#tabs_query {
 	position: absolute;
 	top: 0px;
-	left: 780px;
+	left: 750px;
 	height: 200px;
 	width: 220px;
 	margin: 5px;
@@ -117,7 +117,7 @@ div#clear_map {
 /*=============== Map styling ======================*/
 #map_canvas {
 	height: 100%;
-	width: 790px;
+	width: 760px;
 	position: absolute;
 	top: 210px;
 	left: 210px;

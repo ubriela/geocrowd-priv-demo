@@ -95,7 +95,7 @@ function load() {
 	}
 
 	$('#jqxdropdown_dataset').trigger('change');
-	toggleHeatmap();
+//	toggleHeatmap();
 	
 	var interval = setInterval(mobilitySimulation, 3000);
 }
@@ -795,7 +795,7 @@ $(document).ready(function() {
 	$("#jqxdropdown_heuristic").jqxDropDownList({
 		source : Heuristics,
 		selectedIndex : 0,
-		width : '140px',
+		width : '130px',
 		height : '20px',
 		autoDropDownHeight : true,
 		theme : 'energyblue'
@@ -822,7 +822,7 @@ $(document).ready(function() {
 	$("#jqxdropdown_acceptance_rate").jqxDropDownList({
 		source : AcceptanceRates,
 		selectedIndex : 0,
-		width : '140px',
+		width : '130px',
 		height : '20px',
 		autoDropDownHeight : true,
 		theme : 'energyblue'
