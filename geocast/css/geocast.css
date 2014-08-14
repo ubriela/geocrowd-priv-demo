@@ -3,7 +3,7 @@
 	background: #FECA40;
 }
 
-#dataset .ui-selected {
+/* #dataset .ui-selected {
 	background: gray;
 	color: white;
 	font-weight: bold
@@ -18,10 +18,10 @@
 
 #dataset li {
 	margin: 2px;
-	padding: 0.4em;
+	padding: 0.0em;
 	font-size: 1em;
 	height: 12px;
-}
+} */
 
 /*=============== Common styling ======================*/
 button {

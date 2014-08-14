@@ -34,11 +34,11 @@
 						</td>
 					</tr>
 					<tr>
+						<td></td>
 						<td>
 							<button type="button" value="Publish Data" id="publish_data"
 								onClick="publishData()">Publish Data</button>
 						</td>
-						<td></td>
 					</tr>
 				</table>
 			</div>
@@ -76,19 +76,19 @@
 							</tr>
 							<tr>
 								<td>Number of workers</td>
-								<td><label id="label_worker_count"></label></td>
+								<td align="right"><label id="label_worker_count"></label></td>
 							</tr>
 							<tr>
 								<td>Max travel dist (km)</td>
-								<td><label id="label_mtd"></label></td>
+								<td align="right"><label id="label_mtd"></label></td>
 							</tr>
 							<tr>
 								<td>Area (&#x33a2;)</td>
-								<td><label id="label_area"></label></td>
+								<td align="right"><label id="label_area"></label></td>
 							</tr>
 							<tr>
 								<td>Pearson skewness</td>
-								<td><label id="label_pearson_skewness"></label></td>
+								<td align="right"><label id="label_pearson_skewness"></label></td>
 							</tr>
 						</table>
 					</td>

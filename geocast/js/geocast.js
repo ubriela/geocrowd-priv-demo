@@ -762,7 +762,7 @@ $(document).ready(function() {
 	$("#jqxdropdown_privacy_budget").jqxDropDownList({
 		source : PrivacyBudgets,
 		selectedIndex : 0,
-		width : '100px',
+		width : '110px',
 		height : '20px',
 		autoDropDownHeight : true,
 		theme : 'energyblue'
@@ -778,7 +778,7 @@ $(document).ready(function() {
 	$("#jqxdropdown_granularity").jqxDropDownList({
 		source : Granularities,
 		selectedIndex : 0,
-		width : '100px',
+		width : '110px',
 		height : '20px',
 		autoDropDownHeight : true,
 		theme : 'energyblue'
