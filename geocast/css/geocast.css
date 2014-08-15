@@ -36,6 +36,12 @@ label {
 	font-family: Verdana, Arial, sans-serif;
 }
 
+div#notification {
+	position: absolute;
+	top: 0px;
+	left: 300px;
+}
+
 /*============================== Top panel - Datasets & Settings ==================*/
 div#tabs_dataset {
 	initialIndex: 1;
@@ -93,7 +99,7 @@ div#clear_map {
 	position: absolute;
 	top: 210px;
 	left: 0px;
-	height: 300px;
+	height: 200px;
 	width: 200px;
 	padding: 0px;
 	margin: 5px;

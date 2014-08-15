@@ -4,6 +4,7 @@
 
 <body onload="load()">
 
+	<div id="notification"></div>
 	<div id="tabs_dataset">
 		<ul>
 			<p>
@@ -182,7 +183,7 @@
 		</div>
 
 		<div id="tabs_query_2">
-			<form name="input" action="geocast_view.php"
+			<form name="input" action="home.php"
 				onsubmit="drawTestTask();
                           return false">
 				Task (lat,lng) <input type="text" name="coordinate"><br>

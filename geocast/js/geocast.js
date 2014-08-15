@@ -5,6 +5,7 @@ var PARAM_URL = 'http://ubriela.cloudapp.net/param/'
 var map = null;
 var infoWindow;
 var isIE;
+var obj;
 
 google.maps.event.addDomListener(window, 'load', init);
 var allMarkers = [];
@@ -68,18 +69,16 @@ function load() {
 	map = new google.maps.Map(mapDiv, mapOptions);
 
 	/* map click event */
-	google.maps.event.addListener(map, 'dblclick', function(event) {
+	google.maps.event.addListener(map, 'click', function(event) {
 
 		var touch_point = new google.maps.LatLng(event.latLng.lat(),
 				event.latLng.lng());
 		var marker = new google.maps.Marker({
 			map : map,
 			position : touch_point,
-			icon : 'http://labs.google.com/ridefinder/images/mm_20_blue.png'
+			icon : 'http://www.google.com/mapfiles/marker.png'
 		});
-		infoWindow = new google.maps.InfoWindow;
-		drawATask(marker, map, infoWindow, event.latLng.lat() + '-'
-				+ event.latLng.lng());
+		drawATask(marker, map, event.latLng.lat() + ',' + event.latLng.lng());
 		marker.setMap(map);
 		allMarkers.push(marker);
 	});
@@ -95,8 +94,8 @@ function load() {
 	}
 
 	$('#jqxdropdown_dataset').trigger('change');
-//	toggleHeatmap();
-	
+	// toggleHeatmap();
+
 	var interval = setInterval(mobilitySimulation, 3000);
 }
 
@@ -135,8 +134,95 @@ function retrieveGeocastInfo(latlng) {
 				alert("The selected location is outside of the dataset");
 			} else {
 				drawGeocastRegion();
+				drawNotifiedWorkers();
 			}
 		}
+	});
+}
+
+/**
+ * Draw all notified workers with markers
+ */
+function drawNotifiedWorkers() {
+	for (var i = 0; i < obj.notified_workers.no_workers; i++) {
+		var latlng = new google.maps.LatLng(obj.notified_workers.x_coords[i],
+				obj.notified_workers.y_coords[i]);
+
+		drawANotifiedWorker(latlng, map,
+				'http://labs.google.com/ridefinder/images/mm_20_yellow.png');
+	}
+
+	/* if the task is performed, draw the performed worker */
+	if (obj.is_performed) {
+		var latlng = new google.maps.LatLng(obj.volunteer_worker.location[0],
+				obj.volunteer_worker.location[1]);
+
+		drawANotifiedWorker(latlng, map,
+				'http://labs.google.com/ridefinder/images/mm_20_green.png');
+
+		/* notify */
+		$("#notification").notify(
+				"Based on our model, this task will be performed\n"
+						+ "The number of notified workers: "
+						+ obj.notified_workers.no_workers, "info");
+	} else {
+		/* notify */
+		$("#notification").notify(
+				"Based on our model, this task will NOT be performed\n"
+						+ "The number of notified workers: "
+						+ obj.notified_workers.no_workers, "info");
+	}
+}
+
+/**
+ * Draw a single notified worker
+ * 
+ * @param latlng
+ * @param map
+ */
+function drawANotifiedWorker(latlng, map, icon) {
+	var marker = new google.maps.Marker({
+		map : map,
+		position : latlng,
+		icon : icon
+	});
+
+	// marker.setMap(map);
+	// add marker
+	allMarkers.push(marker);
+
+	/* for each notified worker, add click event notification */
+	var infoWindow = new google.maps.InfoWindow();
+
+	google.maps.event.addListener(marker, 'mouseover', function(event) {
+		var formatted_lat = Number(latlng.lat()).toFixed(6);
+		var formatted_lng = Number(latlng.lng()).toFixed(6);
+		var dist = google.maps.geometry.spherical.computeDistanceBetween(
+				new google.maps.LatLng(obj.spatial_task.location[0],
+						obj.spatial_task.location[1]), latlng);
+
+		dist = Number(dist.toFixed(0));
+
+		var info = 'Worker info: ';
+		info += '<table><tr><td><b>Latitude</td><td align="right">'
+				+ formatted_lat;
+		info += '</td></tr><tr><td><b>Longitude</b></td><td align="right">'
+				+ formatted_lng;
+		info += '</td></tr><tr><td><b>Distance (m)</b></td><td align="right">'
+				+ dist;
+		info += '</td></tr></table>';
+		;
+
+		infoWindow.setContent(info);
+		infoWindow.setPosition(event.latLng);
+
+		infoWindow.open(map);
+	});
+
+	// setTimeout(function () { infoWindow.close(); }, 4000);
+
+	google.maps.event.addListener(marker, 'mouseout', function() {
+		infoWindow.close(map, marker);
 	});
 }
 
@@ -146,18 +232,18 @@ function retrieveGeocastInfo(latlng) {
  * repeatedly add cell after specific amount of miliseconds
  */
 function drawGeocastRegion() {
-	var i = -1;
-	var interval = setInterval(function() {
-		drawGeocastCell(i);
-		i++;
-		if (i >= obj.geocast_query.x_min_cords.length)
-			clearInterval(interval);
-	}, delayTime);
-
 	/**
 	 * Draw the bounding circle of geocast region
 	 */
 	drawBoundingCircle();
+
+	var i = -1;
+	var interval = setInterval(function() {
+		drawGeocastCell(i);
+		i++;
+		if (i >= obj.geocast_query.x_min_coords.length)
+			clearInterval(interval);
+	}, delayTime);
 }
 
 /**
@@ -184,12 +270,21 @@ function drawBoundingCircle() {
 	// Add a listener for the click event to show hop count.
 	var infoWindow = new google.maps.InfoWindow();
 	google.maps.event.addListener(cityCircle, 'click', function(event) {
-		var info = 'Hop count: ' + obj.hop_count;
+		var info = '<table><tr><td><b>Hop count</b></td><td>' + obj.hop_count
+				+ '</td><tr><td><b>Notified workers</b></td><td>'
+				+ obj.notified_workers.no_workers + '</td></tr></table>';
 		infoWindow.setContent(info);
 		infoWindow.setPosition(event.latLng);
 
 		infoWindow.open(map);
+
+		setTimeout(function() {
+			infoWindow.close();
+		}, 4000);
 	});
+
+	allMarkers.push(cityCircle);
+
 }
 
 /*
@@ -201,20 +296,20 @@ function drawBoundingCircle() {
 function drawGeocastCell(i) {
 	polygon = new Array();
 
-	var point0 = new google.maps.LatLng(obj.geocast_query.x_min_cords[i],
-			obj.geocast_query.y_min_cords[i]);
+	var point0 = new google.maps.LatLng(obj.geocast_query.x_min_coords[i],
+			obj.geocast_query.y_min_coords[i]);
 	polygon[0] = point0;
 
-	var point1 = new google.maps.LatLng(obj.geocast_query.x_min_cords[i],
-			obj.geocast_query.y_max_cords[i]);
+	var point1 = new google.maps.LatLng(obj.geocast_query.x_min_coords[i],
+			obj.geocast_query.y_max_coords[i]);
 	polygon[1] = point1;
 
-	var point2 = new google.maps.LatLng(obj.geocast_query.x_max_cords[i],
-			obj.geocast_query.y_max_cords[i]);
+	var point2 = new google.maps.LatLng(obj.geocast_query.x_max_coords[i],
+			obj.geocast_query.y_max_coords[i]);
 	polygon[2] = point2;
 
-	var point3 = new google.maps.LatLng(obj.geocast_query.x_max_cords[i],
-			obj.geocast_query.y_min_cords[i]);
+	var point3 = new google.maps.LatLng(obj.geocast_query.x_max_coords[i],
+			obj.geocast_query.y_min_coords[i]);
 	polygon[3] = point3;
 
 	polygon[4] = point0;
@@ -233,29 +328,32 @@ function drawGeocastCell(i) {
 
 	// Add a listener for the click event to show cell info.
 	infoWindow = new google.maps.InfoWindow();
-	google.maps.event.addListener(cellPolygons[cellIdx], 'click', function(
-			event) {
-		var info = 'Adding Order: ' + (i + 1);
-		info += '<table  border="1"><tr><td><b>Cell Utility</td><td>'
-				+ obj.geocast_query.utilities[i][0];
-		info += '</td></tr><tr><td><b>Current Utility</b></td><td>'
-				+ obj.geocast_query.utilities[i][1];
-		info += '</td></tr><tr><td><b>Current Compactness</b></td><td>'
-				+ obj.geocast_query.compactnesses[i];
-		info += '</td></tr><tr><td><b>Distance to task (km)</b></td><td>'
-				+ obj.geocast_query.distances[i];
-		info += '</td></tr><tr><td><b>Area (&#x33a2;)</b></td><td>'
-				+ obj.geocast_query.areas[i];
-		info += '</td></tr><tr><td><b>Noisy Worker Count</b></td><td>'
-				+ obj.geocast_query.worker_counts[i]
-		info += '</td></tr></table>';
-		;
+	google.maps.event
+			.addListener(
+					cellPolygons[cellIdx],
+					'click',
+					function(event) {
+						var info = 'Adding Order: ' + (i + 1);
+						info += '<table  border="1"><tr><td><b>Cell utility</td><td align="right">'
+								+ obj.geocast_query.utilities[i][0];
+						info += '</td></tr><tr><td><b>Current utility</b></td><td align="right">'
+								+ obj.geocast_query.utilities[i][1];
+						info += '</td></tr><tr><td><b>Current compactness</b></td><td align="right">'
+								+ obj.geocast_query.compactnesses[i];
+						info += '</td></tr><tr><td><b>Distance to task (km)</b></td><td align="right">'
+								+ obj.geocast_query.distances[i];
+						info += '</td></tr><tr><td><b>Area (&#x33a2;)</b></td><td align="right">'
+								+ obj.geocast_query.areas[i];
+						info += '</td></tr><tr><td><b>Noisy worker count</b></td><td align="right">'
+								+ obj.geocast_query.worker_counts[i]
+						info += '</td></tr></table>';
+						;
 
-		infoWindow.setContent(info);
-		infoWindow.setPosition(event.latLng);
+						infoWindow.setContent(info);
+						infoWindow.setPosition(event.latLng);
 
-		infoWindow.open(map);
-	});
+						infoWindow.open(map);
+					});
 
 }
 
@@ -266,22 +364,36 @@ function drawGeocastCell(i) {
  * When a marker is clicked, the geocast_query for the task the marker represent
  * will be issued and visuallized on map
  */
-function drawATask(marker, map, infoWindow, html) {
+function drawATask(marker, map, html) {
+
 	json = "blank";
+	var infoWindow = new google.maps.InfoWindow;
 	google.maps.event.addListener(marker, 'mouseover', function() {
 		infoWindow.setContent(html);
+		infoWindow.setPosition(event.latLng);
 		infoWindow.open(map, marker);
+
+		setTimeout(function() {
+			infoWindow.close();
+		}, 4000);
 	});
-	google.maps.event.addListener(marker, 'mouseout', function() {
-		infoWindow.close(map, marker);
-	});
-	google.maps.event.addListener(marker, 'click', function(event) {
-		latlng = event.latLng.lat() + "," + event.latLng.lng();
-		retrieveGeocastInfo(latlng);
-		var center = new google.maps.LatLng(event.latLng.lat(), event.latLng
-				.lng());
-		map.panTo(center);
-	});
+
+	// google.maps.event.addListener(marker, 'mouseout', function() {
+	// infoWindow.close(map, marker);
+	// });
+
+	latlng = marker.position.lat() + "," + marker.position.lng();
+	retrieveGeocastInfo(latlng);
+
+	var center = new google.maps.LatLng(marker.position.lat(), marker.position
+			.lng());
+	var radius = obj.bounding_circle[2];
+	var bounds = new google.maps.LatLngBounds(new google.maps.LatLng(
+			marker.position.lat() - radius, marker.position.lng() - radius),
+			new google.maps.LatLng(marker.position.lat() + radius,
+					marker.position.lng() + radius));
+
+	map.fitBounds(bounds);
 }
 
 /*
@@ -297,7 +409,7 @@ function toggleBoundary(showBound) {
 			fillOpacity : 0,
 			strokeColor : "#FF0000",
 			strokeOpacity : 1,
-			strokeWeight : 2
+			strokeWeight : 1
 
 		});
 		map.fitBounds(bounds);
@@ -324,13 +436,21 @@ function toggleBoundary(showBound) {
 
 		// info
 		infoWindow = new google.maps.InfoWindow();
-		google.maps.event.addListener(boundary, 'click', function(event) {
-			var boundaryinfo = 'Dataset:' + $datasets.names[datasetIdx]
-					+ '<br>#Workers:' + $datasets.worker_counts[datasetIdx];
-			infoWindow.setContent(boundaryinfo);
-			infoWindow.setPosition(event.latLng);
-			infoWindow.open(map);
-		});
+		google.maps.event.addListener(boundary, 'click',
+				function(event) {
+					var boundaryinfo = '<table><tr><td>Dataset:</td><td>'
+							+ $datasets.names[datasetIdx]
+							+ '</td><tr><td>#Workers:</td><td>'
+							+ $datasets.worker_counts[datasetIdx]
+							+ '</td><tr></table>';
+					infoWindow.setContent(boundaryinfo);
+					infoWindow.setPosition(event.latLng);
+					infoWindow.open(map);
+				});
+
+		setTimeout(function() {
+			infoWindow.close();
+		}, 4000);
 
 	} else {
 		button.value = "Show Boundary";
@@ -368,9 +488,7 @@ function drawTestTask() {
 			position : task_point,
 			icon : 'http://labs.google.com/ridefinder/images/mm_20_blue.png'
 		});
-		var infoWindow = new google.maps.InfoWindow;
-		drawATask(marker, map, infoWindow,
-				document.forms["input"]["coordinate"].value);
+		drawATask(marker, map, document.forms["input"]["coordinate"].value);
 		marker.setMap(map);
 		allMarkers.push(marker);
 		map.panTo(task_point);
@@ -396,14 +514,15 @@ function drawSelectedTask(latlng) {
 		position : task_point,
 		icon : 'http://labs.google.com/ridefinder/images/mm_20_blue.png'
 	});
-	var infoWindow = new google.maps.InfoWindow;
-	drawATask(marker, map, infoWindow,
-			document.forms["input"]["coordinate"].value);
+	drawATask(marker, map, document.forms["input"]["coordinate"].value);
 	marker.setMap(map);
 	allMarkers.push(marker);
 	map.panTo(task_point);
 }
 
+/**
+ * Clear all object on map
+ */
 function clearMap() {
 	for (var n = 0; n < allMarkers.length; n++)
 		allMarkers[n].setMap(null);

@@ -53,5 +53,8 @@
 	href='<?php echo base_url("css/geocast.css"); ?>'>
 
 <script type="text/javascript"
+	src='<?php echo base_url("js/utils.js"); ?>'></script>
+
+<script type="text/javascript"
 	src='<?php echo base_url("js/geocast.js"); ?>'></script>
 </head>
