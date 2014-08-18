@@ -161,8 +161,8 @@
 				</form>
 			</div>
 			<div>
-				<input type="checkbox" value="CSS3" id="css3"> Show GR's bounding
-				circle
+				<input type="checkbox" value="CSS3" id="checkShowBoundingCircle"
+					checked> Show GR's bounding circle
 			</div>
 
 		</div>
@@ -205,10 +205,30 @@
 			<div class="k-block">
 				<div class="k-header">Moving Workers</div>
 				<button type="button" value="Start Simulation" id="toggle_mobility"
-					onClick="toggleMobilitySimulation()">Start Simulation</button>
-
+					onClick="startSimulation()">Start Simulation</button>
+				<progress id="progressbar"></progress>
+				<label id="label_iter_count"></label>
+				<button type="button" value="Start Simulation" id="toggle_mobility"
+					onClick="stopSimulation()">Stop Simulation</button>
 			</div>
 		</ul>
+	</div>
+
+	<div>
+		<ul id="panels_marker_types">
+			<div class="k-block">
+				<div class="k-header">Marker types</div>
+				<img src="res/images/mm_20_red.png"
+					alt="some_text"> Task </br> <img
+					src="res/images/mm_20_yellow.png"
+					alt="some_text"> Geocasting workers </br> <img
+					src="res/images/mm_20_green.png"
+					alt="some_text"> Performing worker (FCFS)
+		
+		</ul>
+
+	</div>
+	</ul>
 	</div>
 
 	<div>

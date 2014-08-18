@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <head>
-<title>Geocast Admin</title>
+<title>PrivGeocrowd Admin</title>
 <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
 <meta http-equiv="content-type" content="text/html; charset=UTF-8">
 
@@ -51,9 +51,6 @@
 <!-- Customized -->
 <link rel="stylesheet" type="text/css"
 	href='<?php echo base_url("css/geocast.css"); ?>'>
-
-<script type="text/javascript"
-	src='<?php echo base_url("js/utils.js"); ?>'></script>
 
 <script type="text/javascript"
 	src='<?php echo base_url("js/geocast.js"); ?>'></script>

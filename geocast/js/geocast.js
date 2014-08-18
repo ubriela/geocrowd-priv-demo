@@ -1,6 +1,11 @@
+/**
+ * https://sites.google.com/site/gmapicons/
+ */
+
 var DATASET_URL = 'http://ubriela.cloudapp.net/dataset/';
 var GEOCAST_URL = 'http://ubriela.cloudapp.net/geocast/';
-var PARAM_URL = 'http://ubriela.cloudapp.net/param/'
+var PARAM_URL = 'http://ubriela.cloudapp.net/param/';
+var UPDATE_URL = 'http://ubriela.cloudapp.net/update/';
 
 var map = null;
 var infoWindow;
@@ -27,7 +32,9 @@ var dataLocs = new Array();
 
 var phoenix = new google.maps.LatLng(37.72822, -122.40297);
 
-var mobilityMode = false;
+var movingWorker = false;
+
+var iter_count = 0;
 
 /**
  * This function is called when the homepage is loaded
@@ -74,13 +81,10 @@ function load() {
 		var touch_point = new google.maps.LatLng(event.latLng.lat(),
 				event.latLng.lng());
 		var marker = new google.maps.Marker({
-			map : map,
 			position : touch_point,
-			icon : 'http://www.google.com/mapfiles/marker.png'
+			icon : 'res/images/mm_20_red.png'
 		});
 		drawATask(marker, map, event.latLng.lat() + ',' + event.latLng.lng());
-		marker.setMap(map);
-		allMarkers.push(marker);
 	});
 
 	/* init datasets */
@@ -120,21 +124,24 @@ function set_delay() {
  * GeoCast_Query takes as parametter the url which is used to retrieve a json
  * file containning information of the geocast query
  */
-function retrieveGeocastInfo(latlng) {
+function retrieveGeocastInfo(latlng, marker) {
 	var url = GEOCAST_URL + $datasets.names[datasetIdx] + "/" + latlng;
-	$.getJSON('http://whateverorigin.org/get?url=' + encodeURIComponent(url)
-			+ '&callback=?', function(data) {
-		json = data.contents;
+	$.ajax(url).done(function(data) {
 
-		if (json === "blank")
+		if (data === "blank")
 			alert("Crowdsourcing service is now unavailable");
 		else {
-			obj = JSON.parse(json);
+			obj = JSON.parse(data);
 			if (obj.hasOwnProperty('error')) {
 				alert("The selected location is outside of the dataset");
 			} else {
 				drawGeocastRegion();
 				drawNotifiedWorkers();
+				if (marker) {
+					fitBounds(marker)
+					marker.setMap(map);
+					allMarkers.push(marker);
+				}
 			}
 		}
 	});
@@ -148,8 +155,7 @@ function drawNotifiedWorkers() {
 		var latlng = new google.maps.LatLng(obj.notified_workers.x_coords[i],
 				obj.notified_workers.y_coords[i]);
 
-		drawANotifiedWorker(latlng, map,
-				'http://labs.google.com/ridefinder/images/mm_20_yellow.png');
+		drawANotifiedWorker(latlng, map, 'res/images/mm_20_yellow.png');
 	}
 
 	/* if the task is performed, draw the performed worker */
@@ -157,20 +163,25 @@ function drawNotifiedWorkers() {
 		var latlng = new google.maps.LatLng(obj.volunteer_worker.location[0],
 				obj.volunteer_worker.location[1]);
 
-		drawANotifiedWorker(latlng, map,
-				'http://labs.google.com/ridefinder/images/mm_20_green.png');
+		drawANotifiedWorker(latlng, map, 'res/images/mm_20_green.png');
+
+		var dist = google.maps.geometry.spherical.computeDistanceBetween(
+				new google.maps.LatLng(obj.spatial_task.location[0],
+						obj.spatial_task.location[1]), latlng);
+
+		dist = Number(dist.toFixed(0));
 
 		/* notify */
 		$("#notification").notify(
-				"Based on our model, this task will be performed\n"
-						+ "The number of notified workers: "
-						+ obj.notified_workers.no_workers, "info");
+				"This task is performed by a worker of distance " + dist
+						+ " metres :)\n" + "The number of notified workers: "
+						+ obj.notified_workers.no_workers, "success");
 	} else {
 		/* notify */
 		$("#notification").notify(
-				"Based on our model, this task will NOT be performed\n"
+				"This task is NOT performed :(\n"
 						+ "The number of notified workers: "
-						+ obj.notified_workers.no_workers, "info");
+						+ obj.notified_workers.no_workers, "error");
 	}
 }
 
@@ -179,6 +190,8 @@ function drawNotifiedWorkers() {
  * 
  * @param latlng
  * @param map
+ * @param icon
+ * @returns distance to task
  */
 function drawANotifiedWorker(latlng, map, icon) {
 	var marker = new google.maps.Marker({
@@ -194,10 +207,11 @@ function drawANotifiedWorker(latlng, map, icon) {
 	/* for each notified worker, add click event notification */
 	var infoWindow = new google.maps.InfoWindow();
 
+	var dist = 0;
 	google.maps.event.addListener(marker, 'mouseover', function(event) {
 		var formatted_lat = Number(latlng.lat()).toFixed(6);
 		var formatted_lng = Number(latlng.lng()).toFixed(6);
-		var dist = google.maps.geometry.spherical.computeDistanceBetween(
+		dist = google.maps.geometry.spherical.computeDistanceBetween(
 				new google.maps.LatLng(obj.spatial_task.location[0],
 						obj.spatial_task.location[1]), latlng);
 
@@ -224,6 +238,8 @@ function drawANotifiedWorker(latlng, map, icon) {
 	google.maps.event.addListener(marker, 'mouseout', function() {
 		infoWindow.close(map, marker);
 	});
+
+	return dist;
 }
 
 /*
@@ -232,10 +248,6 @@ function drawANotifiedWorker(latlng, map, icon) {
  * repeatedly add cell after specific amount of miliseconds
  */
 function drawGeocastRegion() {
-	/**
-	 * Draw the bounding circle of geocast region
-	 */
-	drawBoundingCircle();
 
 	var i = -1;
 	var interval = setInterval(function() {
@@ -244,6 +256,13 @@ function drawGeocastRegion() {
 		if (i >= obj.geocast_query.x_min_coords.length)
 			clearInterval(interval);
 	}, delayTime);
+
+	/**
+	 * Draw the bounding circle of geocast region
+	 */
+
+	if ($('#checkShowBoundingCircle').is(":checked"))
+		drawBoundingCircle();
 }
 
 /**
@@ -284,7 +303,6 @@ function drawBoundingCircle() {
 	});
 
 	allMarkers.push(cityCircle);
-
 }
 
 /*
@@ -327,7 +345,7 @@ function drawGeocastCell(i) {
 	cellPolygons[cellIdx].setMap(map);
 
 	// Add a listener for the click event to show cell info.
-	infoWindow = new google.maps.InfoWindow();
+	var infoWindow = new google.maps.InfoWindow();
 	google.maps.event
 			.addListener(
 					cellPolygons[cellIdx],
@@ -353,6 +371,10 @@ function drawGeocastCell(i) {
 						infoWindow.setPosition(event.latLng);
 
 						infoWindow.open(map);
+
+						setTimeout(function() {
+							infoWindow.close();
+						}, 4000);
 					});
 
 }
@@ -383,10 +405,14 @@ function drawATask(marker, map, html) {
 	// });
 
 	latlng = marker.position.lat() + "," + marker.position.lng();
-	retrieveGeocastInfo(latlng);
+	retrieveGeocastInfo(latlng, marker);
 
-	var center = new google.maps.LatLng(marker.position.lat(), marker.position
-			.lng());
+	// var center = new google.maps.LatLng(marker.position.lat(),
+	// marker.position
+	// .lng());
+}
+
+function fitBounds(marker) {
 	var radius = obj.bounding_circle[2];
 	var bounds = new google.maps.LatLngBounds(new google.maps.LatLng(
 			marker.position.lat() - radius, marker.position.lng() - radius),
@@ -486,7 +512,7 @@ function drawTestTask() {
 		var marker = new google.maps.Marker({
 			map : map,
 			position : task_point,
-			icon : 'http://labs.google.com/ridefinder/images/mm_20_blue.png'
+			icon : 'res/images/mm_20_red.png'
 		});
 		drawATask(marker, map, document.forms["input"]["coordinate"].value);
 		marker.setMap(map);
@@ -505,18 +531,13 @@ function drawTestTask() {
  * function will then visualize geocast query for task at the selected location
  */
 function drawSelectedTask(latlng) {
-	retrieveGeocastInfo(latlng);
-
 	var lat_lng = latlng.split(",");
 	var task_point = new google.maps.LatLng(lat_lng[0], lat_lng[1]);
 	var marker = new google.maps.Marker({
-		map : map,
 		position : task_point,
-		icon : 'http://labs.google.com/ridefinder/images/mm_20_blue.png'
+		icon : 'res/images/mm_20_red.png'
 	});
 	drawATask(marker, map, document.forms["input"]["coordinate"].value);
-	marker.setMap(map);
-	allMarkers.push(marker);
 	map.panTo(task_point);
 }
 
@@ -589,13 +610,12 @@ function updateParams() {
 }
 
 function callbackUpdateParams(responseJSON) {
-	json = responseJSON;
 
-	if (json === "blank")
+	if (responseJSON === "blank")
 		alert("Crowdsourcing service is now unavailable");
 	else {
-		obj = JSON.parse(json);
-		if (obj.hasOwnProperty('error')) {
+		var response = JSON.parse(responseJSON);
+		if (response.hasOwnProperty('error')) {
 		} else {
 			$("#jqxdropdown_acceptance_rate").notify(
 					"The parameters were updated successfully.", "success");
@@ -799,20 +819,32 @@ function toggleHeatmap() {
  * in every second)
  */
 
-function toggleMobilitySimulation() {
-	var button = document.getElementById("toggle_mobility");
-	if (button.value === "Start Simulation") {
-		button.value = "Stop Simulation";
-		mobilityMode = true;
-	} else {
-		button.value = "Start Simulation";
-		mobilityMode = false;
-	}
+function startSimulation() {
+	movingWorker = true;
+}
+
+function stopSimulation() {
+	iter_count = 0;
+	movingWorker = false;
+
+	/* upload */
+	dataLocs
+	$.ajax({
+		url : UPDATE_URL,
+		data : "dataset=" + dataLocs,
+		type : "GET",
+		dataType : "text",
+		success : callbackStopSimulation
+	});
+}
+
+function callbackStopSimulation() {
+
 }
 
 function mobilitySimulation() {
 
-	if (!mobilityMode)
+	if (!movingWorker)
 		return;
 	/* update locations in dataLocs */
 	for (i = 0; i < dataLocs[datasetIdx].length; i++) {
@@ -828,6 +860,14 @@ function mobilitySimulation() {
 	/* clear heatmap */
 	heatmapLayers[datasetIdx].setMap(heatmapLayers[datasetIdx].getMap() ? null
 			: map);
+
+	iter_count++;
+	$('#label_iter_count').text(iter_count + " iterations");
+	$('#label_iter_count').css({
+		'position' : 'absolute',
+		'left' : $('progressbar').position.left,
+		'top' : $('progressbar').position.top
+	});
 }
 
 /**
