@@ -821,25 +821,33 @@ function toggleHeatmap() {
 
 function startSimulation() {
 	movingWorker = true;
+	$("#progressbar").show();
+	$('#label_iter_count').show();
 }
 
 function stopSimulation() {
 	iter_count = 0;
 	movingWorker = false;
+	$('#label_iter_count').text("Uploading updated worker locations from browser to PSD-server... Please wait!");
 
+	dataInJson = JSON.stringify(dataLocs[datasetIdx]);
 	/* upload */
-	dataLocs
 	$.ajax({
 		url : UPDATE_URL,
-		data : "dataset=" + dataLocs,
-		type : "GET",
-		dataType : "text",
+		data : dataInJson,
+		type : "POST",
+		dataType : "json",
 		success : callbackStopSimulation
 	});
 }
 
 function callbackStopSimulation() {
-
+	$("#progressbar").hide();
+	$('#label_iter_count').hide();
+	$("#stop_mobility")
+			.notify(
+					"The worker locations have been updated, new WorkerPSD has been build on PSD-server.",
+					"success");
 }
 
 function mobilitySimulation() {
@@ -862,12 +870,12 @@ function mobilitySimulation() {
 			: map);
 
 	iter_count++;
-	$('#label_iter_count').text(iter_count + " iterations");
-	$('#label_iter_count').css({
-		'position' : 'absolute',
-		'left' : $('progressbar').position.left,
-		'top' : $('progressbar').position.top
-	});
+	$('#label_iter_count').text("All workers are moving randomly toward 4 directions (N,S,E,W)... Step number " + iter_count + ". Click on \"Stop simulation\" to update WorkerPSD.");
+//	$('#label_iter_count').css({
+//		'position' : 'absolute',
+//		'left' : $('progressbar').position.left,
+//		'top' : $('progressbar').position.top
+//	});
 }
 
 /**

@@ -37,7 +37,7 @@
 					<tr>
 						<td></td>
 						<td>
-							<button type="button" value="Publish Data" id="publish_data"
+							<button class="large blue awesome" type="button" value="Publish Data" id="publish_data"
 								onClick="publishData()">Publish Data</button>
 						</td>
 					</tr>
@@ -139,7 +139,7 @@
 				<tr>
 					<td></td>
 					<td align="center">
-						<button type="button" value="Update" id="update_param"
+						<button class="large blue awesome" type="button" value="Update" id="update_param"
 							onClick="updateParams()">Update</button>
 					</td>
 					<td></td>
@@ -157,7 +157,7 @@
                           return false">
 					Geocast Delay (ms) <input type="text"
 						style="width: 100px; padding: 2px" name="delay" value="100"><br>
-					<button type="submit" value="Submit">Update</button>
+					<button class="large blue awesome" type="submit" value="Submit">Update</button>
 				</form>
 			</div>
 			<div>
@@ -187,13 +187,13 @@
 				onsubmit="drawTestTask();
                           return false">
 				Task (lat,lng) <input type="text" name="coordinate"><br>
-				<button type="submit" value="Submit">Submit</button>
+				<button class="large blue awesome" type="submit" value="Submit">Submit</button>
 			</form>
 		</div>
 	</div>
 
 	<div id="clear_map">
-		<button type="button" value="Clear map" id="clear_map"
+		<button class="large blue awesome" type="button" value="Clear map" id="clear_map"
 			onClick="clearMap()">Clear Map</button>
 	</div>
 
@@ -204,11 +204,11 @@
 		<ul id="panels_mobility">
 			<div class="k-block">
 				<div class="k-header">Moving Workers</div>
-				<button type="button" value="Start Simulation" id="toggle_mobility"
+				<button class="large blue awesome" type="button" value="Start Simulation" id="start_mobility"
 					onClick="startSimulation()">Start Simulation</button>
-				<progress id="progressbar"></progress>
+				<progress id="progressbar" hidden="true"></progress>
 				<label id="label_iter_count"></label>
-				<button type="button" value="Start Simulation" id="toggle_mobility"
+				<button class="large blue awesome" type="button" value="Start Simulation" id="stop_mobility"
 					onClick="stopSimulation()">Stop Simulation</button>
 			</div>
 		</ul>

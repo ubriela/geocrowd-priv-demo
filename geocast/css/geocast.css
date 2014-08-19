@@ -24,6 +24,38 @@
 } */
 
 /*=============== Common styling ======================*/
+.awesome, .awesome:visited {
+	background: #222 url(alert-overlay.png) repeat-x;
+	display: inline-block;
+	padding: 5px 10px 6px;
+	color: #fff;
+	text-decoration: none;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	-moz-box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+	-webkit-box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+	text-shadow: 0 -1px 1px rgba(0, 0, 0, 0.25);
+	border-bottom: 1px solid rgba(0, 0, 0, 0.25);
+	position: relative;
+	cursor: pointer;
+}
+
+.blue.awesome, .blue.awesome:visited {
+	background-color: #2daebf;
+}
+
+.large.awesome, .large.awesome:visited {
+	font-size: 12px;
+	padding: 5px 5px 5px;
+}
+
+.awesome, .awesome:visited, .medium.awesome, .medium.awesome:visited {
+	font-size: 12px;
+	font-weight: bold;
+	line-height: 1;
+	text-shadow: -15 -1px 1px rgba(0, 0, 0, 0.25);
+}
+
 button {
 	color: blue;
 	font-weight: bold;
@@ -31,7 +63,7 @@ button {
 
 label {
 	color: #222222;
-	font-size: 11px;;
+	font-size: 11px;
 	font-weight: bold;
 	font-family: Verdana, Arial, sans-serif;
 }
@@ -95,7 +127,7 @@ div#tabs_query {
 
 div#clear_map {
 	position: absolute;
-	top: 410px;
+	top: 320px;
 	left: 50px;
 	margin: 5px;
 }
@@ -113,20 +145,25 @@ div#clear_map {
 	font-family: Arial, Helvetica, sans-serif;
 }
 
-#progressbar {
-/* 	position: absolute;
-	top: 250px;
-	left: 5px; */
-	width: 100px;
-	height: 30px;
+#progressbar
+{
+	position : absolute;	
+	top : 40px;	
+	left : 220px;
+	width : 600px;
 }
 
 #label_iter_count {
+	position: absolute;
+	top: 70px;
+	left: 230px;
+	width: 600px;
+	font-size: 12px;
 }
 
 #panels_marker_types {
 	position: absolute;
-	top: 440px;
+	top: 360px;
 	left: 0px;
 	height: 150px;
 	width: 200px;
@@ -139,7 +176,7 @@ div#clear_map {
 /**================ Instruction =====================*/
 #panels_instruction {
 	position: absolute;
-	top: 560px;
+	top: 480px;
 	left: 0px;
 	height: 300px;
 	width: 200px;
