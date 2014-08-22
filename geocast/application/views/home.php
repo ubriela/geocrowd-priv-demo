@@ -153,7 +153,7 @@
 		<div id="tabs_setting_2">
 			<div>
 				<form name="GUI_delay" action="geocast_view.php"
-					onsubmit="set_delay();
+					onsubmit="setDelay();
                           return false">
 					Geocast Delay (ms) <input type="text"
 						style="width: 100px; padding: 2px" name="delay" value="100"><br>
@@ -193,10 +193,14 @@
 	</div>
 
 	<div id="clear_map">
-		<button class="large blue awesome" type="button" value="Clear map" id="clear_map"
+		<button class="large blue awesome" type="button" value="Clear map"
 			onClick="clearMap()">Clear Map</button>
 	</div>
 
+	<div id="reset">
+		<button class="large blue awesome" type="button" value="Reset"
+			onClick="resetData()">Reset Data</button>
+	</div>
 
 	<div id="map_canvas"></div>
 

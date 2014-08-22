@@ -6,38 +6,61 @@ var DATASET_URL = 'http://ubriela.cloudapp.net/dataset/';
 var GEOCAST_URL = 'http://ubriela.cloudapp.net/geocast/';
 var PARAM_URL = 'http://ubriela.cloudapp.net/param/';
 var UPDATE_URL = 'http://ubriela.cloudapp.net/update/';
+var RESET_URL = 'http://ubriela.cloudapp.net/reset'
 
+/** google map */
 var map = null;
+
+/** this information window is used for multiple purpose */
 var infoWindow;
 var isIE;
-var obj;
+
+/** geocast response */
+var jsonObj;
 
 google.maps.event.addDomListener(window, 'load', init);
 var allMarkers = [];
 
-var cellPolygons = new Array();
+/**
+ * cells includes data while geocastCells includes map objects
+ */
 var cells = new Array();
-// var polygon = new Array();
+var geocastCells = new Array();
 
 var cellIdx = -1;
 var json = "blank";
 
+/**
+ * index of current dataset. This variable is used to determine 1) current
+ * location data, 2) current boundary and 3) current heatmap layer
+ */
 var datasetIdx = 0;
-var bounds = new Array();
-var boundRect;
-var delayTime = 100;
-
-var heatmapLayers = new Array();
 var dataLocs = new Array();
-
-var phoenix = new google.maps.LatLng(37.72822, -122.40297);
-
-var movingWorker = false;
-
-var iter_count = 0;
+var bounds = new Array();
+var heatmapLayers = new Array();
 
 /**
- * This function is called when the homepage is loaded
+ * default delay time in milliseconds between each iteration of geocast cell
+ * generation
+ */
+var delayTime = 100;
+
+/** default map location */
+var phoenix = new google.maps.LatLng(37.72822, -122.40297);
+
+/** determine whether worker locations are moving */
+var movingWorker = false;
+
+/** the number of moves so far */
+var moves = 0;
+
+/** absolute value in geographical coordinate */
+var steps = .005;
+
+/**
+ * This function is called when the homepage is loaded.
+ * 
+ * It load the maps and datasets.
  */
 function load() {
 
@@ -103,14 +126,18 @@ function load() {
 	var interval = setInterval(mobilitySimulation, 3000);
 }
 
-function loadStats() {
+/**
+ * update statistics (when user select a dataset)
+ */
+function updateStatLabels() {
 	$('#label_worker_count').text($datasets.worker_counts[datasetIdx]);
 	$('#label_mtd').text($datasets.mtds[datasetIdx]);
 	$('#label_area').text($datasets.areas[datasetIdx]);
 	$('#label_pearson_skewness').text($datasets.pearson_skewness[datasetIdx]);
 }
 
-function set_delay() {
+/** set delay between each generation of geocast cell */
+function setDelay() {
 	var input_delay = latlng = document.forms["GUI_delay"]["delay"].value;
 	if (isNaN(input_delay)) {
 		alert("Invalid input");
@@ -121,18 +148,18 @@ function set_delay() {
 }
 
 /*
- * GeoCast_Query takes as parametter the url which is used to retrieve a json
- * file containning information of the geocast query
+ * GeoCast_Query takes as parameter the url which is used to retrieve a json
+ * file containing information of the geocast query
  */
-function retrieveGeocastInfo(latlng, marker) {
+function geocast(latlng, marker) {
 	var url = GEOCAST_URL + $datasets.names[datasetIdx] + "/" + latlng;
 	$.ajax(url).done(function(data) {
 
 		if (data === "blank")
 			alert("Crowdsourcing service is now unavailable");
 		else {
-			obj = JSON.parse(data);
-			if (obj.hasOwnProperty('error')) {
+			jsonObj = JSON.parse(data);
+			if (jsonObj.hasOwnProperty('error')) {
 				alert("The selected location is outside of the dataset");
 			} else {
 				drawGeocastRegion();
@@ -151,23 +178,25 @@ function retrieveGeocastInfo(latlng, marker) {
  * Draw all notified workers with markers
  */
 function drawNotifiedWorkers() {
-	for (var i = 0; i < obj.notified_workers.no_workers; i++) {
-		var latlng = new google.maps.LatLng(obj.notified_workers.x_coords[i],
-				obj.notified_workers.y_coords[i]);
+	for (var i = 0; i < jsonObj.notified_workers.no_workers; i++) {
+		var latlng = new google.maps.LatLng(
+				jsonObj.notified_workers.x_coords[i],
+				jsonObj.notified_workers.y_coords[i]);
 
 		drawANotifiedWorker(latlng, map, 'res/images/mm_20_yellow.png');
 	}
 
 	/* if the task is performed, draw the performed worker */
-	if (obj.is_performed) {
-		var latlng = new google.maps.LatLng(obj.volunteer_worker.location[0],
-				obj.volunteer_worker.location[1]);
+	if (jsonObj.is_performed) {
+		var latlng = new google.maps.LatLng(
+				jsonObj.volunteer_worker.location[0],
+				jsonObj.volunteer_worker.location[1]);
 
 		drawANotifiedWorker(latlng, map, 'res/images/mm_20_green.png');
 
 		var dist = google.maps.geometry.spherical.computeDistanceBetween(
-				new google.maps.LatLng(obj.spatial_task.location[0],
-						obj.spatial_task.location[1]), latlng);
+				new google.maps.LatLng(jsonObj.spatial_task.location[0],
+						jsonObj.spatial_task.location[1]), latlng);
 
 		dist = Number(dist.toFixed(0));
 
@@ -175,13 +204,13 @@ function drawNotifiedWorkers() {
 		$("#notification").notify(
 				"This task is performed by a worker of distance " + dist
 						+ " metres :)\n" + "The number of notified workers: "
-						+ obj.notified_workers.no_workers, "success");
+						+ jsonObj.notified_workers.no_workers, "success");
 	} else {
 		/* notify */
 		$("#notification").notify(
 				"This task is NOT performed :(\n"
 						+ "The number of notified workers: "
-						+ obj.notified_workers.no_workers, "error");
+						+ jsonObj.notified_workers.no_workers, "error");
 	}
 }
 
@@ -212,8 +241,8 @@ function drawANotifiedWorker(latlng, map, icon) {
 		var formatted_lat = Number(latlng.lat()).toFixed(6);
 		var formatted_lng = Number(latlng.lng()).toFixed(6);
 		dist = google.maps.geometry.spherical.computeDistanceBetween(
-				new google.maps.LatLng(obj.spatial_task.location[0],
-						obj.spatial_task.location[1]), latlng);
+				new google.maps.LatLng(jsonObj.spatial_task.location[0],
+						jsonObj.spatial_task.location[1]), latlng);
 
 		dist = Number(dist.toFixed(0));
 
@@ -245,7 +274,7 @@ function drawANotifiedWorker(latlng, map, icon) {
 /*
  * Overlay_GeoCast_Region is to visualize how geocast cells are chosen by
  * iteratively overlay polygons on map. This function used setInterval to
- * repeatedly add cell after specific amount of miliseconds
+ * repeatedly add cell after specific amount of milliseconds
  */
 function drawGeocastRegion() {
 
@@ -253,7 +282,7 @@ function drawGeocastRegion() {
 	var interval = setInterval(function() {
 		drawGeocastCell(i);
 		i++;
-		if (i >= obj.geocast_query.x_min_coords.length)
+		if (i >= jsonObj.geocast_query.x_min_coords.length)
 			clearInterval(interval);
 	}, delayTime);
 
@@ -269,9 +298,9 @@ function drawGeocastRegion() {
  * Draw bounding circle
  */
 function drawBoundingCircle() {
-	var center = new google.maps.LatLng(obj.bounding_circle[0],
-			obj.bounding_circle[1]);
-	var radius = obj.bounding_circle[2];
+	var center = new google.maps.LatLng(jsonObj.bounding_circle[0],
+			jsonObj.bounding_circle[1]);
+	var radius = jsonObj.bounding_circle[2];
 	var circleOptions = {
 		strokeColor : '#FF0000',
 		strokeOpacity : 0.6,
@@ -289,9 +318,10 @@ function drawBoundingCircle() {
 	// Add a listener for the click event to show hop count.
 	var infoWindow = new google.maps.InfoWindow();
 	google.maps.event.addListener(cityCircle, 'click', function(event) {
-		var info = '<table><tr><td><b>Hop count</b></td><td>' + obj.hop_count
+		var info = '<table><tr><td><b>Hop count</b></td><td>'
+				+ jsonObj.hop_count
 				+ '</td><tr><td><b>Notified workers</b></td><td>'
-				+ obj.notified_workers.no_workers + '</td></tr></table>';
+				+ jsonObj.notified_workers.no_workers + '</td></tr></table>';
 		infoWindow.setContent(info);
 		infoWindow.setPosition(event.latLng);
 
@@ -314,27 +344,27 @@ function drawBoundingCircle() {
 function drawGeocastCell(i) {
 	polygon = new Array();
 
-	var point0 = new google.maps.LatLng(obj.geocast_query.x_min_coords[i],
-			obj.geocast_query.y_min_coords[i]);
+	var point0 = new google.maps.LatLng(jsonObj.geocast_query.x_min_coords[i],
+			jsonObj.geocast_query.y_min_coords[i]);
 	polygon[0] = point0;
 
-	var point1 = new google.maps.LatLng(obj.geocast_query.x_min_coords[i],
-			obj.geocast_query.y_max_coords[i]);
+	var point1 = new google.maps.LatLng(jsonObj.geocast_query.x_min_coords[i],
+			jsonObj.geocast_query.y_max_coords[i]);
 	polygon[1] = point1;
 
-	var point2 = new google.maps.LatLng(obj.geocast_query.x_max_coords[i],
-			obj.geocast_query.y_max_coords[i]);
+	var point2 = new google.maps.LatLng(jsonObj.geocast_query.x_max_coords[i],
+			jsonObj.geocast_query.y_max_coords[i]);
 	polygon[2] = point2;
 
-	var point3 = new google.maps.LatLng(obj.geocast_query.x_max_coords[i],
-			obj.geocast_query.y_min_coords[i]);
+	var point3 = new google.maps.LatLng(jsonObj.geocast_query.x_max_coords[i],
+			jsonObj.geocast_query.y_min_coords[i]);
 	polygon[3] = point3;
 
 	polygon[4] = point0;
 
 	cellIdx += 1;
 	cells[cellIdx] = polygon;
-	cellPolygons[cellIdx] = new google.maps.Polygon({
+	geocastCells[cellIdx] = new google.maps.Polygon({
 		path : cells[cellIdx],
 		strokeColor : "#0000FF",
 		strokeOpacity : 0.8,
@@ -342,28 +372,28 @@ function drawGeocastCell(i) {
 		fillColor : "#0000FF",
 		fillOpacity : 0.1
 	});
-	cellPolygons[cellIdx].setMap(map);
+	geocastCells[cellIdx].setMap(map);
 
 	// Add a listener for the click event to show cell info.
 	var infoWindow = new google.maps.InfoWindow();
 	google.maps.event
 			.addListener(
-					cellPolygons[cellIdx],
+					geocastCells[cellIdx],
 					'click',
 					function(event) {
 						var info = 'Adding Order: ' + (i + 1);
 						info += '<table  border="1"><tr><td><b>Cell utility</td><td align="right">'
-								+ obj.geocast_query.utilities[i][0];
+								+ jsonObj.geocast_query.utilities[i][0];
 						info += '</td></tr><tr><td><b>Current utility</b></td><td align="right">'
-								+ obj.geocast_query.utilities[i][1];
+								+ jsonObj.geocast_query.utilities[i][1];
 						info += '</td></tr><tr><td><b>Current compactness</b></td><td align="right">'
-								+ obj.geocast_query.compactnesses[i];
+								+ jsonObj.geocast_query.compactnesses[i];
 						info += '</td></tr><tr><td><b>Distance to task (km)</b></td><td align="right">'
-								+ obj.geocast_query.distances[i];
+								+ jsonObj.geocast_query.distances[i];
 						info += '</td></tr><tr><td><b>Area (&#x33a2;)</b></td><td align="right">'
-								+ obj.geocast_query.areas[i];
+								+ jsonObj.geocast_query.areas[i];
 						info += '</td></tr><tr><td><b>Noisy worker count</b></td><td align="right">'
-								+ obj.geocast_query.worker_counts[i]
+								+ jsonObj.geocast_query.worker_counts[i]
 						info += '</td></tr></table>';
 						;
 
@@ -405,15 +435,18 @@ function drawATask(marker, map, html) {
 	// });
 
 	latlng = marker.position.lat() + "," + marker.position.lng();
-	retrieveGeocastInfo(latlng, marker);
+	geocast(latlng, marker);
 
 	// var center = new google.maps.LatLng(marker.position.lat(),
 	// marker.position
 	// .lng());
 }
 
+/**
+ * Panning map to a location
+ */
 function fitBounds(marker) {
-	var radius = obj.bounding_circle[2];
+	var radius = jsonObj.bounding_circle[2];
 	var bounds = new google.maps.LatLngBounds(new google.maps.LatLng(
 			marker.position.lat() - radius, marker.position.lng() - radius),
 			new google.maps.LatLng(marker.position.lat() + radius,
@@ -430,14 +463,6 @@ function toggleBoundary(showBound) {
 
 	if (button.value == "Show Boundary" || showBound == true) {
 		button.value = "Hide Boundary";
-		boundRect = new google.maps.Rectangle({
-			bounds : bounds,
-			fillOpacity : 0,
-			strokeColor : "#FF0000",
-			strokeOpacity : 1,
-			strokeWeight : 1
-
-		});
 		map.fitBounds(bounds);
 
 		// boundary
@@ -504,7 +529,7 @@ function drawTestTask() {
 			// lattitude
 			&& lat_lng[1] >= -180 && lat_lng[0] <= 180) { // check range of
 		// longitude
-		retrieveGeocastInfo(latlng);
+		geocast(latlng);
 
 		var coor = document.forms["input"]["coordinate"].value;
 		var lat_lng = coor.split(",");
@@ -549,11 +574,27 @@ function clearMap() {
 		allMarkers[n].setMap(null);
 	allMarkers = [];
 
-	for (var n = 0; n < cellPolygons.length; n++)
-		cellPolygons[n].setMap(null);
-	cellPolygons = [];
+	for (var n = 0; n < geocastCells.length; n++)
+		geocastCells[n].setMap(null);
+	geocastCells = [];
 
 	cellIdx = -1;
+}
+
+/**
+ * Reset
+ */
+function resetData() {
+	$.ajax({
+		url : RESET_URL,
+		type : "GET",
+		dataType : "json",
+		success : callbackResetData
+	});
+}
+
+function callbackResetData() {
+	$("#reset") .notify("The datasets have been updated.");
 }
 
 /**
@@ -668,7 +709,9 @@ function retrieveHistoryTasks() {
 	});
 }
 
-// populate spreadsheet
+/**
+ * populate spreadsheet
+ */
 function callbackTasks(responseXML) {
 
 	// right table
@@ -825,15 +868,20 @@ function startSimulation() {
 	$('#label_iter_count').show();
 }
 
+/**
+ * Stop animation & update current worker locations to server
+ */
 function stopSimulation() {
-	iter_count = 0;
+	moves = 0;
 	movingWorker = false;
-	$('#label_iter_count').text("Uploading updated worker locations from browser to PSD-server... Please wait!");
+	$('#label_iter_count')
+			.text(
+					"Uploading updated worker locations from browser to PSD-server... Please wait!");
 
 	dataInJson = JSON.stringify(dataLocs[datasetIdx]);
 	/* upload */
 	$.ajax({
-		url : UPDATE_URL,
+		url : UPDATE_URL + "?dataset=" + $datasets.names[datasetIdx],
 		data : dataInJson,
 		type : "POST",
 		dataType : "json",
@@ -850,6 +898,9 @@ function callbackStopSimulation() {
 					"success");
 }
 
+/**
+ * This function is called every fews seconds
+ */
 function mobilitySimulation() {
 
 	if (!movingWorker)
@@ -857,7 +908,7 @@ function mobilitySimulation() {
 	/* update locations in dataLocs */
 	for (i = 0; i < dataLocs[datasetIdx].length; i++) {
 		var latlng = dataLocs[datasetIdx][i];
-		randomWalk(latlng, 2);
+		latlng = randomWalk(latlng, steps);
 		dataLocs[datasetIdx][i] = latlng;
 	}
 
@@ -869,13 +920,18 @@ function mobilitySimulation() {
 	heatmapLayers[datasetIdx].setMap(heatmapLayers[datasetIdx].getMap() ? null
 			: map);
 
-	iter_count++;
-	$('#label_iter_count').text("All workers are moving randomly toward 4 directions (N,S,E,W)... Step number " + iter_count + ". Click on \"Stop simulation\" to update WorkerPSD.");
-//	$('#label_iter_count').css({
-//		'position' : 'absolute',
-//		'left' : $('progressbar').position.left,
-//		'top' : $('progressbar').position.top
-//	});
+	// map.clearOverlays();
+
+	moves++;
+	$('#label_iter_count').text(
+			"All workers are moving randomly toward 4 directions (N,S,E,W)... Step number "
+					+ moves
+					+ ". Click on \"Stop simulation\" to update WorkerPSD.");
+	// $('#label_iter_count').css({
+	// 'position' : 'absolute',
+	// 'left' : $('progressbar').position.left,
+	// 'top' : $('progressbar').position.top
+	// });
 }
 
 /**
@@ -899,8 +955,12 @@ function randomWalk(latlng, step) {
 	new_lng = Math.min(new_lng, bounds.getNorthEast().lng());
 
 	latlng = new google.maps.LatLng(new_lat, new_lng);
+	return latlng;
 }
 
+/**
+ * Load GUI controls
+ */
 $(document).ready(function() {
 	// $('#jqxdropdown_dataset').addClass('ui-selected');
 
@@ -1015,7 +1075,7 @@ $(document).ready(function() {
 });
 
 /**
- * Select a dataset
+ * Event to select a dataset
  */
 $(function() {
 	$("#jqxdropdown_dataset").change(
@@ -1032,7 +1092,7 @@ $(function() {
 
 				toggleBoundary(true);
 				retrieveHistoryTasks();
-				loadStats();
+				updateStatLabels();
 
 				$("#jqxdropdown_dataset").notify(
 						"Current dataset was updated.", "success");
