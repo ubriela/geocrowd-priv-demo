@@ -591,10 +591,11 @@ function resetData() {
 		dataType : "json",
 		success : callbackResetData
 	});
+	$("#reset").notify("The datasets have been updated.", "success");
 }
 
 function callbackResetData() {
-	$("#reset") .notify("The datasets have been updated.");
+	
 }
 
 /**
@@ -912,13 +913,13 @@ function mobilitySimulation() {
 		dataLocs[datasetIdx][i] = latlng;
 	}
 
-	heatmapLayers[datasetIdx] = new google.maps.visualization.HeatmapLayer({
-		data : new google.maps.MVCArray(dataLocs[datasetIdx])
-	});
-
 	/* clear heatmap */
 	heatmapLayers[datasetIdx].setMap(heatmapLayers[datasetIdx].getMap() ? null
 			: map);
+	
+	heatmapLayers[datasetIdx] = new google.maps.visualization.HeatmapLayer({
+		data : new google.maps.MVCArray(dataLocs[datasetIdx])
+	});
 
 	// map.clearOverlays();
 
@@ -1094,7 +1095,7 @@ $(function() {
 				retrieveHistoryTasks();
 				updateStatLabels();
 
-				$("#jqxdropdown_dataset").notify(
+				$("#boundary").notify(
 						"Current dataset was updated.", "success");
 			});
 });
