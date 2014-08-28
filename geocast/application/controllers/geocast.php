@@ -4,7 +4,9 @@ header('Access-Control-Allow-Origin: *');
 if (! defined ( 'BASEPATH' ))
 	exit ( 'No direct script access allowed' );
 
-$DATASET_URL = 'http://ubriela.cloudapp.net/dataset';
+$DATASET_URL = 'http://ubriela.cloudapp.net/dataset/?task=info';
+
+
 class Geocast extends CI_Controller {
 	function __construct() {
 		parent::__construct ();
@@ -84,5 +86,67 @@ class Geocast extends CI_Controller {
 		
 		$data = file_get_contents ( $file );
 		echo $data;
+	}
+	
+	
+	/**
+	 * Display upload_form
+	 */
+	function upload_form()
+	{
+		$this->load->view('upload_form', array('error' => ''));
+	}
+	
+	function do_upload()
+	{
+		$config['upload_path'] = 'res/';
+		$config['allowed_types'] = '*';
+		$config['max_size']	= '2048';	// Set to zero for no limit
+		$config['max_filename']	= '20';
+		$config['remove_spaces']	= True;
+	
+		$this->load->library('upload', $config);
+	
+		$field_name = 'dataset';
+		if ( ! $this->upload->do_upload($field_name))
+		{	
+			$error = array('error' => $this->upload->display_errors());
+			$this->load->view('upload_form', $error);
+		}
+		else
+		{	
+			$filename = $this->upload->data()['full_path'];
+			//$filedata = file_get_contents ( $filename );
+			if ($filename != '')
+			{
+				$headers = array("Content-Type:multipart/form-data"); // cURL headers for file uploading
+				//$postfields = array("filedata" => "@$filedata", "filename" => $filename);
+				$ch = curl_init("http://ubriela.cloudapp.net/upload");
+				curl_setopt($ch, CURLOPT_HEADER, true);
+				curl_setopt($ch, CURLOPT_POST, true);
+				curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+// 				curl_setopt($ch, CURLOPT_POSTFIELDS, $postfields);
+				curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+				
+				$args['file'] = new CurlFile($filename);
+				curl_setopt($ch, CURLOPT_POSTFIELDS, $args);
+				
+				curl_exec($ch);
+				if(!curl_errno($ch))
+				{
+					$info = curl_getinfo($ch);
+					if ($info['http_code'] == 200)
+						$errmsg = "File uploaded successfully";
+				}
+				else
+				{
+					$errmsg = curl_error($ch);
+				}
+				curl_close($ch);
+			}
+	
+			$data = array('upload_data' => $this->upload->data());
+			$this->load->view('upload_success', $data);
+		}
 	}
 }

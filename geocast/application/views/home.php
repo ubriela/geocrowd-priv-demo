@@ -35,10 +35,17 @@
 						</td>
 					</tr>
 					<tr>
-						<td></td>
 						<td>
-							<button class="large blue awesome" type="button" value="Publish Data" id="publish_data"
-								onClick="publishData()">Publish Data</button>
+
+							<form action="index.php/geocast/upload_form" method="post" target="_blank">
+								<button class="large blue awesome" type="submit" type="submit"
+									value="Upload Dataset" id="upload_datastet">Upload Dataset</button>
+							</form>
+						</td>
+						<td>
+							<button class="large blue awesome" type="button"
+								value="Publish Data" id="publish_data" onClick="publishData()">Publish
+								Data</button>
 						</td>
 					</tr>
 				</table>
@@ -139,8 +146,8 @@
 				<tr>
 					<td></td>
 					<td align="center">
-						<button class="large blue awesome" type="button" value="Update" id="update_param"
-							onClick="updateParams()">Update</button>
+						<button class="large blue awesome" type="button" value="Update"
+							id="update_param" onClick="updateParams()">Update</button>
 					</td>
 					<td></td>
 				</tr>
@@ -208,11 +215,13 @@
 		<ul id="panels_mobility">
 			<div class="k-block">
 				<div class="k-header">Moving Workers</div>
-				<button class="large blue awesome" type="button" value="Start Simulation" id="start_mobility"
+				<button class="large blue awesome" type="button"
+					value="Start Simulation" id="start_mobility"
 					onClick="startSimulation()">Start Simulation</button>
 				<progress id="progressbar" hidden="true"></progress>
 				<label id="label_iter_count"></label>
-				<button class="large blue awesome" type="button" value="Start Simulation" id="stop_mobility"
+				<button class="large blue awesome" type="button"
+					value="Start Simulation" id="stop_mobility"
 					onClick="stopSimulation()">Stop Simulation</button>
 			</div>
 		</ul>
@@ -222,12 +231,10 @@
 		<ul id="panels_marker_types">
 			<div class="k-block">
 				<div class="k-header">Marker types</div>
-				<img src="res/images/mm_20_red.png"
-					alt="some_text"> Task </br> <img
-					src="res/images/mm_20_yellow.png"
-					alt="some_text"> Geocasting workers </br> <img
-					src="res/images/mm_20_green.png"
-					alt="some_text"> Performing worker (FCFS)
+				<img src="res/images/mm_20_red.png" alt="some_text"> Task </br> <img
+					src="res/images/mm_20_yellow.png" alt="some_text"> Geocasting
+				workers </br> <img src="res/images/mm_20_green.png" alt="some_text">
+				Performing worker (FCFS)
 		
 		</ul>
 

@@ -132,8 +132,15 @@ function load() {
 function updateStatLabels() {
 	$('#label_worker_count').text($datasets.worker_counts[datasetIdx]);
 	$('#label_mtd').text($datasets.mtds[datasetIdx]);
-	$('#label_area').text($datasets.areas[datasetIdx]);
-	$('#label_pearson_skewness').text($datasets.pearson_skewness[datasetIdx]);
+	if ($datasets.areas[datasetIdx] === 0)
+		$('#label_area').text("N/A");
+	else
+		$('#label_area').text($datasets.areas[datasetIdx]);
+	if ($datasets.pearson_skewness[datasetIdx] == 0)
+		$('#label_pearson_skewness').text("N/A");
+	else
+		$('#label_pearson_skewness').text(
+				$datasets.pearson_skewness[datasetIdx]);
 }
 
 /** set delay between each generation of geocast cell */
@@ -595,7 +602,7 @@ function resetData() {
 }
 
 function callbackResetData() {
-	
+
 }
 
 /**
@@ -605,6 +612,9 @@ function callbackResetData() {
  */
 function publishData() {
 	var dataset = $('#jqxdropdown_datasetsx').val();
+	var idx = $datasets.names2.indexOf(dataset);
+	dataset = $datasets.names[idx];
+
 	var privacy_budget = $('#jqxdropdown_privacy_budget').val()
 	var budget_param = $('#jqxdropdown_budget_parameter').val();
 	var granularity = $('#jqxdropdown_granularity').val();
@@ -618,8 +628,8 @@ function publishData() {
 		success : callbackpublishData
 	});
 
-	$("#jqxdropdown_datasetsx").notify(
-			"The dataset was published successfully.", "success");
+	$("#publish_data").notify("The dataset was published successfully.",
+			"success");
 }
 
 function callbackpublishData(responseJSON) {
@@ -831,7 +841,9 @@ function loadDataset(output, idx) {
 	} else {// code for IE6, IE5
 		txtFile = new ActiveXObject("Microsoft.XMLHTTP");
 	}
-	txtFile.open("GET", "index.php/geocast/load_dataset?name="
+	// txtFile.open("GET", "index.php/geocast/load_dataset?name="
+	// + $datasets.names[idx], false);
+	txtFile.open("GET", DATASET_URL + "?task=data&dataset="
 			+ $datasets.names[idx], false);
 	txtFile.send();
 	var txtDoc = txtFile.responseText;
@@ -916,7 +928,7 @@ function mobilitySimulation() {
 	/* clear heatmap */
 	heatmapLayers[datasetIdx].setMap(heatmapLayers[datasetIdx].getMap() ? null
 			: map);
-	
+
 	heatmapLayers[datasetIdx] = new google.maps.visualization.HeatmapLayer({
 		data : new google.maps.MVCArray(dataLocs[datasetIdx])
 	});
@@ -1095,7 +1107,7 @@ $(function() {
 				retrieveHistoryTasks();
 				updateStatLabels();
 
-				$("#boundary").notify(
-						"Current dataset was updated.", "success");
+				$("#boundary")
+						.notify("Current dataset was updated.", "success");
 			});
 });
