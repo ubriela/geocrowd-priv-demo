@@ -1053,7 +1053,7 @@ $(document).ready(function() {
 	$("#jqxdropdown_expected_utility").jqxDropDownList({
 		source : ExpectedUtilities,
 		selectedIndex : 0,
-		width : '100px',
+		width : '120px',
 		height : '20px',
 		autoDropDownHeight : true,
 		theme : 'energyblue'
@@ -1080,7 +1080,7 @@ $(document).ready(function() {
 	$("#jqxdropdown_wireless_range").jqxDropDownList({
 		source : WirelessRanges,
 		selectedIndex : 0,
-		width : '100px',
+		width : '120px',
 		height : '20px',
 		autoDropDownHeight : true,
 		theme : 'energyblue'

@@ -9,10 +9,10 @@ if (! defined ( 'BASEPATH' ))
 	// $config['base_url'] = 'http://localhost/GeoCast/geocast/';
 	
 // Hien config
-// $config ['base_url'] = 'http://localhost:8080/geocast/geocast/';
+$config ['base_url'] = 'http://localhost:8080/geocast/geocast/';
 
 // Cloud config
-$config['base_url'] = 'http://geocast.azurewebsites.net/geocast/';
+//$config['base_url'] = 'http://geocast.azurewebsites.net/geocast/';
 
 /*
  * |-------------------------------------------------------------------------- | Index File |-------------------------------------------------------------------------- | | Typically this will be your index.php file, unless you've renamed it to | something else. If you are using mod_rewrite to remove the page set this | variable so that it is blank. |
