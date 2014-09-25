@@ -10,3 +10,4 @@ https://bitbucket.org/hto/privategeocrowd/
 
 https://bitbucket.org/hto/geocrowd
 
+https://bitbucket.org/hto/maximumcomplextask/
